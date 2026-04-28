@@ -1,8 +1,8 @@
 const mongoose = require('mongoose');
 
 const orderSchema = new mongoose.Schema({
-    // User reference (currently disabled) - uncomment and require once user system is implemented
-    // userId: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
+    // User reference - now enabled for user-specific orders
+    userId: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
 
     // User-readable order ID (auto-generated)
     orderId: { 
@@ -25,6 +25,13 @@ const orderSchema = new mongoose.Schema({
         type: String,
         enum: ['CASH_ON_DELIVERY', 'PAY_ONLINE'], // Frontend has empty default option not in enum
         required: false // Should be required if payment is mandatory
+    },
+
+    // Order status field - was missing from original schema
+    status: {
+        type: String,
+        enum: ['PENDING', 'PROCESSING', 'OUT_FOR_DELIVERY', 'DELIVERED', 'CANCELLED'],
+        default: 'PENDING'
     }
 }, { timestamps: true });
 

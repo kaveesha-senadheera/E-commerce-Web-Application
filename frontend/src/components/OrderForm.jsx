@@ -9,7 +9,8 @@ function OrderForm({ order, onSave, onCancel }) {
     firstName: '', lastName: '', address: '', province: '', city: '',
     postalCode: '', mobileNo: '', paymentMethod: 'CASH_ON_DELIVERY'
   });
-
+  
+  
   const handleSubmit = (e) => {
     e.preventDefault();
 
@@ -73,13 +74,6 @@ function OrderForm({ order, onSave, onCancel }) {
     } else {
       onSave(formData);
     }
-
-    // After saving, ask for PDF download (only if successful)
-    setTimeout(() => {
-      if (window.confirm("Do you want to download the PDF report?")) {
-        downloadPDF();
-      }
-    }, 100);
   };
 
   const handleInputChange = (field, value) => {
@@ -89,9 +83,10 @@ function OrderForm({ order, onSave, onCancel }) {
     if (field === "postalCode" || field === "mobileNo") {
       if (!/^\d*$/.test(value)) return;
     }
-    setFormData({ ...formData, [field]: value });
+    setFormData(prev => ({ ...prev, [field]: value }));
   };
 
+  
   const downloadPDF = () => {
     const doc = new jsPDF();
     doc.setFontSize(16);

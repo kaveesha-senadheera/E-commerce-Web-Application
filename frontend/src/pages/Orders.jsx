@@ -3,6 +3,7 @@ import axios from "axios";
 import { MdAddShoppingCart } from "react-icons/md";
 import OrderList from "../components/OrderList";
 import OrderForm from "../components/OrderForm";
+import AnimatedConfirmMessage from "../components/AnimatedConfirmMessage";
 import { API_ENDPOINTS } from "../api/config";
 
 function Orders() {
@@ -10,23 +11,56 @@ function Orders() {
   const [showForm, setShowForm] = useState(false);
   const [editingOrder, setEditingOrder] = useState(null);
   const [successMessage, setSuccessMessage] = useState("");
-  const [showSuccess, setShowSuccess] = useState(false);
+  const [showAnimatedConfirm, setShowAnimatedConfirm] = useState(false);
   const [submittedOrder, setSubmittedOrder] = useState(null);
 
   useEffect(() => {
-    axios
-      .get(API_ENDPOINTS.ORDERS)
-      .then((res) => setOrders(res.data))
-      .catch((err) => console.error("Error fetching orders:", err));
+    // Fetch orders from the backend
+    const fetchOrders = () => {
+      axios
+        .get(API_ENDPOINTS.ORDERS)
+        .then((res) => setOrders(res.data))
+        .catch((err) => console.error("Error fetching orders:", err));
+    };
+
+    fetchOrders();
+
+    // Listen for delivery status updates
+    const handleDeliveryStatusUpdate = () => {
+      console.log('Delivery status updated, refreshing all orders...');
+      fetchOrders();
+    };
+
+    window.addEventListener('deliveryStatusUpdated', handleDeliveryStatusUpdate);
+
+    return () => {
+      window.removeEventListener('deliveryStatusUpdated', handleDeliveryStatusUpdate);
+    };
   }, []);
 
-  const showSuccessMessage = (message) => {
+  const showSuccessMessage = (message, orderData = null) => {
+    console.log('=== SHOW SUCCESS MESSAGE CALLED ===');
+    console.log('Message:', message);
+    console.log('Order Data:', orderData);
+    console.log('Current showAnimatedConfirm state:', showAnimatedConfirm);
     setSuccessMessage(message);
-    setShowSuccess(true);
+    setShowAnimatedConfirm(true);
+    setSubmittedOrder(orderData);
+    console.log('Set showAnimatedConfirm to true');
+    
+    // Auto-close after 3 seconds
     setTimeout(() => {
-      setShowSuccess(false);
+      console.log('Auto-closing animated confirm message');
+      setShowAnimatedConfirm(false);
       setSuccessMessage("");
+      setSubmittedOrder(null);
     }, 3000);
+  };
+
+  const closeAnimatedConfirm = () => {
+    setShowAnimatedConfirm(false);
+    setSuccessMessage("");
+    setSubmittedOrder(null);
   };
 
   const addOrder = (order) => {
@@ -35,11 +69,14 @@ function Orders() {
         headers: { "Content-Type": "application/json" },
       })
       .then((res) => {
+        console.log('API Response:', res);
         const newOrder = res.data;
+        console.log('New order data:', newOrder);
         setOrders([...orders, newOrder]);
         setShowForm(false);
-        setSubmittedOrder(newOrder);
-        showSuccessMessage("Order submitted successfully! 🎉");
+        
+        // Show order submission success message
+        showSuccessMessage("Order submitted successfully! 🎉", newOrder);
         
         // Clear editing order state
         setEditingOrder(null);
@@ -73,7 +110,6 @@ function Orders() {
       .delete(API_ENDPOINTS.ORDER_BY_ID(id))
       .then(() => {
         setOrders(orders.filter((o) => o._id !== id));
-        showSuccessMessage("Order deleted successfully! 🗑️");
       })
       .catch((err) => {
         console.error("Error deleting order:", err);
@@ -86,33 +122,17 @@ function Orders() {
     setEditingOrder(null);
   };
 
-  const closeOrderDetails = () => {
-    setSubmittedOrder(null);
-  };
-
+  
+  
   return (
     <div>
-      {/* Success Message */}
-      {showSuccess && (
-        <div 
-          style={{
-            position: 'fixed',
-            top: '20px',
-            right: '20px',
-            backgroundColor: '#28a745',
-            color: 'white',
-            padding: '15px 25px',
-            borderRadius: '10px',
-            boxShadow: '0 4px 20px rgba(40, 167, 69, 0.4)',
-            zIndex: '9999',
-            fontSize: '16px',
-            fontWeight: '600',
-            animation: 'slideInRight 0.3s ease-out'
-          }}
-        >
-          {successMessage}
-        </div>
-      )}
+      {/* Animated Confirmation Message */}
+      <AnimatedConfirmMessage
+        message={successMessage}
+        isVisible={showAnimatedConfirm}
+        onClose={closeAnimatedConfirm}
+        orderData={submittedOrder}
+      />
 
       <h1>Order Delivery Details</h1>
       <div className="order-header">
@@ -137,74 +157,27 @@ function Orders() {
         />
       )}
 
-      {/* Order Details Modal */}
+      {/* PDF Download Confirmation Modal */}
+      {console.log('RENDER CHECK - submittedOrder:', submittedOrder, 'showPDFConfirmModal:', showPDFConfirmModal) || submittedOrder && (
+        <PDFDownloadConfirmModal
+          order={submittedOrder}
+          isOpen={showPDFConfirmModal}
+          onConfirm={handlePDFConfirm}
+          onCancel={handlePDFCancel}
+        />
+      )}
+
+      {/* PDF Download Modal */}
       {submittedOrder && (
-        <div className="modal-overlay">
-          <div className="modal-container" style={{ maxWidth: '600px' }}>
-            <div className="modal-header">
-              <h2 className="modal-title">🎉 Order Submitted Successfully!</h2>
-              <button className="close-button" onClick={closeOrderDetails}>×</button>
-            </div>
-            
-            <div className="order-details-content" style={{ padding: '30px' }}>
-              <div style={{ marginBottom: '20px' }}>
-                <h3 style={{ color: '#4ecdc4', marginBottom: '15px' }}>Order Details</h3>
-                <div style={{ backgroundColor: 'rgba(255, 255, 255, 0.1)', padding: '20px', borderRadius: '10px' }}>
-                  <p style={{ margin: '10px 0', color: '#ffffff' }}><strong>Order ID:</strong> <span style={{ color: '#4ecdc4', fontWeight: '700', background: 'rgba(78, 205, 196, 0.1)', padding: '4px 8px', borderRadius: '6px', border: '1px solid rgba(78, 205, 196, 0.3)' }}>{submittedOrder.orderId}</span></p>
-                  <p style={{ margin: '10px 0', color: '#ffffff' }}><strong>Name:</strong> {submittedOrder.firstName} {submittedOrder.lastName}</p>
-                  <p style={{ margin: '10px 0', color: '#ffffff' }}><strong>Address:</strong> {submittedOrder.address}</p>
-                  <p style={{ margin: '10px 0', color: '#ffffff' }}><strong>Location:</strong> {submittedOrder.city}, {submittedOrder.province} {submittedOrder.postalCode}</p>
-                  <p style={{ margin: '10px 0', color: '#ffffff' }}><strong>Phone:</strong> {submittedOrder.mobileNo}</p>
-                  <p style={{ margin: '10px 0', color: '#ffffff' }}><strong>Payment:</strong> {submittedOrder.paymentMethod}</p>
-                  <p style={{ margin: '10px 0', color: '#ffffff' }}><strong>Status:</strong> <span style={{ background: 'linear-gradient(135deg, #ffc107, #e0a800)', color: '#000', padding: '4px 8px', borderRadius: '12px', fontSize: '12px', fontWeight: '700', textTransform: 'uppercase' }}>{submittedOrder.status || 'PENDING'}</span></p>
-                </div>
-              </div>
-              
-              <div style={{ textAlign: 'center' }}>
-                <p style={{ color: 'rgba(255, 255, 255, 0.8)', marginBottom: '20px' }}>
-                  Your order has been successfully submitted and will be processed soon!
-                </p>
-                <div style={{ marginBottom: '20px' }}>
-                  <p style={{ color: '#4ecdc4', fontWeight: '700', marginBottom: '10px' }}>
-                    📋 Copy your Order ID for driver reference:
-                  </p>
-                  <div style={{ 
-                    background: 'rgba(78, 205, 196, 0.1)', 
-                    border: '1px solid rgba(78, 205, 196, 0.3)', 
-                    borderRadius: '8px', 
-                    padding: '15px',
-                    textAlign: 'center'
-                  }}>
-                    <span style={{ 
-                      fontSize: '18px', 
-                      fontWeight: '800', 
-                      color: '#4ecdc4',
-                      letterSpacing: '2px'
-                    }}>
-                      {submittedOrder.orderId}
-                    </span>
-                  </div>
-                </div>
-                <button 
-                  onClick={closeOrderDetails}
-                  style={{
-                    backgroundColor: '#4ecdc4',
-                    color: '#0a2540',
-                    border: 'none',
-                    padding: '12px 30px',
-                    borderRadius: '8px',
-                    fontSize: '16px',
-                    fontWeight: '600',
-                    cursor: 'pointer',
-                    transition: 'all 0.3s ease'
-                  }}
-                >
-                  Continue Shopping
-                </button>
-              </div>
-            </div>
-          </div>
-        </div>
+        <PDFDownloadModal
+          order={submittedOrder}
+          isOpen={showPDFModal}
+          onDownload={() => downloadOrderPDF(submittedOrder)}
+          onClose={() => {
+            setShowPDFModal(false);
+            setSubmittedOrder(null);
+          }}
+        />
       )}
 
       {/* Add animation styles */}

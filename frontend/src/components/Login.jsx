@@ -1,0 +1,150 @@
+import { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { useAuth } from '../context/AuthContext';
+import { FaEye, FaEyeSlash, FaUser, FaLock, FaEnvelope, FaStar, FaRocket } from 'react-icons/fa';
+import './Auth.css';
+
+const Login = () => {
+  const [formData, setFormData] = useState({
+    email: '',
+    password: ''
+  });
+  const [error, setError] = useState('');
+  const [loading, setLoading] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
+  const [isAnimating, setIsAnimating] = useState(false);
+  const [sparkles, setSparkles] = useState(false);
+  
+  const navigate = useNavigate();
+  const { login } = useAuth();
+
+  useEffect(() => {
+    // Always use dark theme
+    document.body.classList.add('dark-theme');
+    // Trigger entrance animation
+    setTimeout(() => setIsAnimating(true), 100);
+    // Trigger sparkles animation
+    setTimeout(() => setSparkles(true), 500);
+  }, []);
+
+  const handleChange = (e) => {
+    setFormData({
+      ...formData,
+      [e.target.name]: e.target.value
+    });
+  };
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    setError('');
+    setLoading(true);
+
+    try {
+      await login(formData.email, formData.password);
+      navigate('/');
+    } catch (err) {
+      setError(err.message || 'Login failed. Please try again.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return (
+    <div className={`auth-container dark-theme ${isAnimating ? 'animate-in' : ''}`}>
+      <div className="auth-background">
+        <div className="floating-shapes">
+          <div className="shape shape-1"></div>
+          <div className="shape shape-2"></div>
+          <div className="shape shape-3"></div>
+          <div className="shape shape-4"></div>
+          <div className="shape shape-5"></div>
+        </div>
+        {sparkles && (
+          <div className="sparkles">
+            <FaStar className="sparkle sparkle-1" />
+            <FaStar className="sparkle sparkle-2" />
+            <FaStar className="sparkle sparkle-3" />
+            <FaStar className="sparkle sparkle-4" />
+          </div>
+        )}
+      </div>
+
+      <div className={`auth-card ${isAnimating ? 'slide-up' : ''}`}>
+        <div className="auth-header">
+          <div className="auth-icon">
+            <FaRocket />
+          </div>
+          <h2>Welcome Back</h2>
+          <p>Sign in to continue to your account</p>
+        </div>
+
+        <form onSubmit={handleSubmit} className="auth-form">
+          <div className="form-group">
+            <div className="input-icon">
+              <FaEnvelope />
+              <input
+                type="email"
+                id="email"
+                name="email"
+                value={formData.email}
+                onChange={handleChange}
+                required
+                placeholder="Enter your email"
+                className="auth-input"
+              />
+            </div>
+          </div>
+
+          <div className="form-group">
+            <div className="input-icon">
+              <FaLock />
+              <input
+                type={showPassword ? "text" : "password"}
+                id="password"
+                name="password"
+                value={formData.password}
+                onChange={handleChange}
+                required
+                placeholder="Enter your password"
+                className="auth-input"
+              />
+              <button
+                type="button"
+                className="password-toggle enhanced"
+                onClick={() => setShowPassword(!showPassword)}
+              >
+                {showPassword ? <FaEyeSlash /> : <FaEye />}
+              </button>
+            </div>
+          </div>
+
+          {error && <div className="error-message shake">{error}</div>}
+
+          <button 
+            type="submit" 
+            disabled={loading} 
+            className={`auth-button enhanced ${loading ? 'loading' : ''}`}
+          >
+            {loading ? (
+              <span className="loading-spinner">
+                <span className="spinner"></span>
+                Logging in...
+              </span>
+            ) : (
+              <span>Login</span>
+            )}
+          </button>
+        </form>
+
+        <div className="auth-footer">
+          <p>
+            Don't have an account? 
+            <a href="/register" className="auth-link">Register here</a>
+          </p>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+export default Login;

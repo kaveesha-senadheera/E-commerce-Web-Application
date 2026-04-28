@@ -1,12 +1,32 @@
 const mongoose = require('mongoose');
+const bcrypt = require('bcryptjs');
 
-// User schema with optional fields to support flexible registration
-// TODO: Add validation middleware for phone/email format
+// User schema with authentication support
 const userSchema = new mongoose.Schema({
-    username: { type: String, required: false },
-    role: { type: String, enum: ['customer', 'seller'], required: false },
-    phone: { type: String, required: false },
-    email: { type: String, required: false, unique: false } // Warning: unique:false allows duplicates
+    username: { type: String, required: true, trim: true },
+    email: { type: String, required: true, unique: true, lowercase: true, trim: true },
+    password: { type: String, required: true, minlength: 6 },
+    role: { type: String, enum: ['customer', 'driver', 'seller'], required: true },
+    phone: { type: String, required: false, trim: true },
+    createdAt: { type: Date, default: Date.now }
 });
+
+// Hash password before saving
+userSchema.pre('save', async function(next) {
+    if (!this.isModified('password')) return next();
+    
+    try {
+        const salt = await bcrypt.genSalt(10);
+        this.password = await bcrypt.hash(this.password, salt);
+        next();
+    } catch (error) {
+        next(error);
+    }
+});
+
+// Compare password method
+userSchema.methods.comparePassword = async function(candidatePassword) {
+    return await bcrypt.compare(candidatePassword, this.password);
+};
 
 module.exports = mongoose.model('User', userSchema);

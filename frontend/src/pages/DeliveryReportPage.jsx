@@ -3,17 +3,35 @@ import axios from "axios";
 import DeliveryStatusReport from "../components/DeliveryStatusReport";
 import { Link } from "react-router-dom";
 import { API_ENDPOINTS } from "../api/config";
+import { useAuth } from '../context/AuthContext';
 
 function DeliveryReportPage() {
   const [deliveries, setDeliveries] = useState([]);
+  const { user, loading } = useAuth();
 
   useEffect(() => {
-    // Fetch deliveries from the orders endpoint since deliveries are created with orders
-    axios
-      .get(`${API_ENDPOINTS.ORDERS}/deliveries`)
-      .then((res) => setDeliveries(res.data))
-      .catch((err) => console.error("Error fetching deliveries:", err));
-  }, []);
+    const fetchDeliveries = async () => {
+      try {
+        let deliveriesResponse;
+        
+        // If user is a driver, fetch all deliveries
+        if (user?.role === 'driver') {
+          deliveriesResponse = await axios.get(`${API_ENDPOINTS.ORDERS}/deliveries`);
+        } else {
+          // For other users (customers, etc.), fetch customer-specific deliveries
+          deliveriesResponse = await axios.get(`${API_ENDPOINTS.ORDERS}/deliveries/customer`);
+        }
+        
+        setDeliveries(deliveriesResponse.data);
+      } catch (err) {
+        console.error("Error fetching deliveries:", err);
+      }
+    };
+
+    if (!loading && user) {
+      fetchDeliveries();
+    }
+  }, [user, loading]);
 
   return (
     <div className="container">

@@ -1,6 +1,6 @@
 // Main server configuration file
 
-require('dotenv').config({ path: __dirname + '/.env', debug: false });
+require('dotenv').config();
 
 
 const express = require("express");

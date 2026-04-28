@@ -1,46 +1,11 @@
 import React, { useState } from 'react';
-import OrderDeleteConfirmModal from './OrderDeleteConfirmModal';
 
-function OrderList({ orders, onEdit, onDelete }) {
+function ViewOnlyOrderList({ orders }) {
   const [searchOrderId, setSearchOrderId] = useState('');
-  const [copiedId, setCopiedId] = useState(null);
-  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
-  const [orderToDelete, setOrderToDelete] = useState(null);
-
-  const handleCopy = (text, id) => {
-    navigator.clipboard.writeText(text)
-      .then(() => {
-        setCopiedId(id);
-        setTimeout(() => setCopiedId(null), 1500);
-      })
-      .catch((err) => {
-        console.error('Failed to copy: ', err);
-      });
-  };
 
   const filteredOrders = orders.filter(order =>
     order.orderId.toLowerCase().includes(searchOrderId.toLowerCase())
   );
-
-  const isPendingOrder = (order) => {
-    return order.status === 'PENDING';
-  };
-
-  const handleDeleteClick = (order) => {
-    setOrderToDelete(order);
-    setShowDeleteConfirm(true);
-  };
-
-  const handleConfirmDelete = async () => {
-    if (orderToDelete) {
-      await onDelete(orderToDelete._id);
-    }
-  };
-
-  const handleCancelDelete = () => {
-    setShowDeleteConfirm(false);
-    setOrderToDelete(null);
-  };
 
   return (
     <div className="order-list-enhanced">
@@ -74,7 +39,6 @@ function OrderList({ orders, onEdit, onDelete }) {
                 <th>Mobile No</th>
                 <th>Payment Method</th>
                 <th>Status</th>
-                <th>Action</th>
               </tr>
             </thead>
             <tbody>
@@ -93,13 +57,6 @@ function OrderList({ orders, onEdit, onDelete }) {
                         <div className="detail-item">
                           <span className="detail-label">📍</span>
                           <span className="detail-text">{order.address}</span>
-                          <button
-                            className="copy-btn-enhanced"
-                            onClick={() => handleCopy(order.address, order._id)}
-                            title="Copy Address"
-                          >
-                            {copiedId === order._id ? '✅' : '📋'}
-                          </button>
                         </div>
                         <div className="detail-item">
                           <span className="detail-label">🏙️</span>
@@ -116,29 +73,11 @@ function OrderList({ orders, onEdit, onDelete }) {
                         {order.status || 'PENDING'}
                       </span>
                     </td>
-                    <td>
-                      <button
-                        className={`edit-btn-enhanced ${!isPendingOrder(order) ? 'disabled-btn' : ''}`}
-                        onClick={() => isPendingOrder(order) && onEdit(order)}
-                        disabled={!isPendingOrder(order)}
-                        title={isPendingOrder(order) ? 'Edit Order' : 'Cannot edit: Order is already in progress or delivered'}
-                      >
-                        ✏️
-                      </button>
-                      <button
-                        className={`delete-btn-enhanced ${!isPendingOrder(order) ? 'disabled-btn' : ''}`}
-                        onClick={() => isPendingOrder(order) && handleDeleteClick(order)}
-                        disabled={!isPendingOrder(order)}
-                        title={isPendingOrder(order) ? 'Delete Order' : 'Cannot delete: Order is already in progress or delivered'}
-                      >
-                        🗑️
-                      </button>
-                    </td>
                   </tr>
                 ))
               ) : (
                 <tr>
-                  <td colSpan="8" className="no-orders-enhanced">
+                  <td colSpan="7" className="no-orders-enhanced">
                     No orders found for this Order ID
                   </td>
                 </tr>
@@ -147,18 +86,8 @@ function OrderList({ orders, onEdit, onDelete }) {
           </table>
         </div>
       </main>
-
-      {/* Order Delete Confirmation Modal */}
-      {orderToDelete && (
-        <OrderDeleteConfirmModal
-          order={orderToDelete}
-          isOpen={showDeleteConfirm}
-          onConfirm={handleConfirmDelete}
-          onCancel={handleCancelDelete}
-        />
-      )}
     </div>
   );
 }
 
-export default OrderList;
+export default ViewOnlyOrderList;

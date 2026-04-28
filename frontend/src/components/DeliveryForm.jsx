@@ -1,6 +1,8 @@
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { jsPDF } from 'jspdf';
+import axios from 'axios';
+import { API_ENDPOINTS } from '../api/config';
 import './success-message.css';
 
 function DeliveryForm({ onUpdate, deliveries }) {
@@ -23,41 +25,187 @@ function DeliveryForm({ onUpdate, deliveries }) {
   const handleSubmit = (e) => {
     e.preventDefault();
     
-    // Find delivery by Delivery ID only (for drivers)
-    const searchId = formData.deliveryId.toLowerCase().trim();
-    const delivery = deliveries.find(d => 
-      d.deliveryId?.toLowerCase() === searchId
-    );
+    const searchId = formData.deliveryId.toUpperCase().trim();
+    
+    // Check if it's an Order ID (starts with ORD)
+    if (searchId.startsWith('ORD')) {
+      // Convert Order ID to Delivery ID (ORD1000 -> DEL1000)
+      const deliveryId = searchId.replace('ORD', 'DEL');
+      
+      // Check if delivery already exists
+      const existingDelivery = deliveries.find(d => 
+        d.deliveryId?.toLowerCase() === deliveryId.toLowerCase()
+      );
 
-    if (delivery) {
-      onUpdate(delivery._id, {
-        driverName: formData.driverName,
-        destination: formData.destination,
-        deliveryDate: formData.deliveryDate,
-        status: formData.status
-      });
+      if (existingDelivery) {
+        // Update existing delivery
+        onUpdate(existingDelivery._id, {
+          driverName: formData.driverName,
+          destination: formData.destination,
+          deliveryDate: formData.deliveryDate,
+          status: formData.status
+        });
+        
+        showSuccessMessage(deliveryId, 'updated');
+      } else {
+        // Create new delivery from order
+        createDeliveryFromOrder(searchId, deliveryId);
+      }
+    } 
+    // Check if it's already a Delivery ID (starts with DEL)
+    else if (searchId.startsWith('DEL')) {
+      const delivery = deliveries.find(d => 
+        d.deliveryId?.toLowerCase() === searchId.toLowerCase()
+      );
 
-      // Store current delivery data for PDF download
-      setCurrentDeliveryData({
-        deliveryId: formData.deliveryId,
-        driverName: formData.driverName,
-        destination: formData.destination,
-        deliveryDate: formData.deliveryDate,
-        status: formData.status
-      });
-
-      setFormData({ deliveryId: '', driverName: '', destination: '', deliveryDate: '', status: 'COMPLETED' });
-      setShowError(false);
-      setShowSuccess(true);
-
-      setTimeout(() => {
+      if (delivery) {
+        onUpdate(delivery._id, {
+          driverName: formData.driverName,
+          destination: formData.destination,
+          deliveryDate: formData.deliveryDate,
+          status: formData.status
+        });
+        
+        showSuccessMessage(searchId, 'updated');
+      } else {
+        setErrorMessage(`Invalid Delivery ID! Delivery ID "${searchId}" not found.\n\nPlease use a valid Delivery ID or Order ID.`);
         setShowSuccess(false);
-      }, 5000);
+        setShowError(true);
+      }
     } else {
-      setErrorMessage(`Invalid Delivery ID! Please use only Delivery ID (e.g., DEL1000, DEL1001).\n\nDrivers should copy Delivery ID from the delivery report page.`);
+      setErrorMessage(`Invalid ID format! Please use:\n• Order ID (e.g., ORD1000) - will create new delivery\n• Delivery ID (e.g., DEL1000) - will update existing delivery`);
       setShowSuccess(false);
       setShowError(true);
     }
+  };
+
+  const createDeliveryFromOrder = async (orderId, deliveryId) => {
+    try {
+      // First, fetch the order details
+      const orderResponse = await axios.get(API_ENDPOINTS.ORDER_BY_ORDER_ID(orderId));
+      const order = orderResponse.data;
+
+      if (!order) {
+        setErrorMessage(`Order with ID "${orderId}" not found.`);
+        setShowError(true);
+        return;
+      }
+
+      // Create new delivery entry
+      const deliveryData = {
+        deliveryId: deliveryId,
+        orderId: { orderId: orderId, _id: order._id },
+        driverName: formData.driverName,
+        destination: `${order.address}, ${order.city}, ${order.province} ${order.postalCode}`,
+        deliveryDate: formData.deliveryDate,
+        status: formData.status,
+        order: order // Include full order details
+      };
+
+      const deliveryResponse = await axios.post(API_ENDPOINTS.DELIVERIES, deliveryData);
+      
+      // Update the deliveries list in parent component
+      if (onUpdate) {
+        onUpdate(null, deliveryResponse.data); // Signal new delivery created
+      }
+
+      showSuccessMessage(deliveryId, 'created');
+      
+    } catch (error) {
+      console.error('Error creating delivery from order:', error);
+      setErrorMessage(`Failed to create delivery from Order "${orderId}". Please check if the order exists.`);
+      setShowError(true);
+    }
+  };
+
+  const updateOrderStatusForDelivery = async (deliveryId, status) => {
+    try {
+      console.log('=== DIRECT ORDER STATUS UPDATE ===');
+      console.log('Updating order status for delivery:', deliveryId);
+      console.log('New status:', status);
+      console.log('Available deliveries:', deliveries.map(d => ({ deliveryId: d.deliveryId, orderId: d.orderId })));
+
+      // Find the delivery to get the associated order and delivery ID
+      const delivery = deliveries.find(d => d.deliveryId === deliveryId);
+      
+      if (delivery && delivery.orderId) {
+        console.log('Found delivery with orderId:', delivery.orderId);
+        console.log('Delivery _id:', delivery._id);
+        console.log('orderId type:', typeof delivery.orderId);
+        console.log('orderId structure:', JSON.stringify(delivery.orderId, null, 2));
+        
+        // Use the delivery-specific endpoint that updates both delivery and order
+        const updateUrl = API_ENDPOINTS.DELIVERY_UPDATE(delivery._id);
+        console.log('Update URL:', updateUrl);
+        
+        const response = await axios.put(updateUrl, {
+          status: status
+        });
+        
+        console.log('Delivery and order status updated successfully:', response.data);
+        
+        // Get the actual order ID for the event
+        const orderId = delivery.orderId._id || delivery.orderId;
+        
+        // Trigger events immediately after successful update
+        console.log('=== TRIGGERING EVENTS ===');
+        console.log('Triggering deliveryStatusUpdated with:', { deliveryId, status, action: 'updated', orderId });
+        
+        window.dispatchEvent(new CustomEvent('deliveryStatusUpdated', { 
+          detail: { 
+            deliveryId: deliveryId, 
+            status: status,
+            action: 'updated',
+            orderId: orderId
+          } 
+        }));
+        
+        console.log('Triggering orderStatusUpdated with:', { orderId, status, deliveryId });
+        
+        window.dispatchEvent(new CustomEvent('orderStatusUpdated', { 
+          detail: { 
+            orderId: orderId,
+            status: status,
+            deliveryId: deliveryId
+          } 
+        }));
+        
+        // Force a refresh of all orders after a short delay to ensure backend sync
+        setTimeout(() => {
+          console.log('=== FORCING ALL ORDERS REFRESH ===');
+          window.dispatchEvent(new CustomEvent('forceOrdersRefresh', { 
+            detail: { 
+              deliveryId: deliveryId, 
+              status: status,
+              orderId: orderId
+            } 
+          }));
+        }, 300);
+        
+      } else {
+        console.log('No delivery found or no orderId associated');
+        if (!delivery) console.log('Delivery not found with ID:', deliveryId);
+        if (!delivery?.orderId) console.log('No orderId in delivery:', delivery);
+      }
+      
+    } catch (error) {
+      console.error('Error updating order status directly:', error);
+      console.error('Error details:', error.response?.data);
+      console.error('Full error:', error);
+    }
+  };
+
+  const showSuccessMessage = (deliveryId, action) => {
+    setFormData({ deliveryId: '', driverName: '', destination: '', deliveryDate: '', status: 'COMPLETED' });
+    setShowError(false);
+    setShowSuccess(true);
+
+    // Update the corresponding order status - this will handle all event dispatching
+    updateOrderStatusForDelivery(deliveryId, formData.status);
+
+    setTimeout(() => {
+      setShowSuccess(false);
+    }, 5000);
   };
 
   const downloadPDF = () => {
@@ -213,11 +361,11 @@ function DeliveryForm({ onUpdate, deliveries }) {
 
       <div className="dm-form-body">
         <div className="dm-form-group">
-          <label className="dm-label">Delivery ID</label>
+          <label className="dm-label">Order ID / Delivery ID</label>
           <input
             className="dm-input animated-input"
             type="text"
-            placeholder="Delivery ID only (e.g., DEL1000)"
+            placeholder="Enter Order ID (ORD1000) or Delivery ID (DEL1000)"
             value={formData.deliveryId}
             onChange={e => setFormData({ ...formData, deliveryId: e.target.value })}
             required
