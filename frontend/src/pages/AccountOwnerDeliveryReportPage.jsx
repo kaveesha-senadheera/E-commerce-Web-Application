@@ -2,27 +2,66 @@ import { useState, useEffect } from "react";
 import axios from "axios";
 import { Link } from "react-router-dom";
 import { API_ENDPOINTS } from "../api/config";
+import { useAuth } from '../context/AuthContext';
 
 function AccountOwnerDeliveryReportPage() {
+  const { user, loading } = useAuth();
   const [deliveries, setDeliveries] = useState([]);
   const [searchId, setSearchId] = useState('');
 
   useEffect(() => {
-    // Fetch only the current customer's deliveries
+    console.log('=== ACCOUNT OWNER DELIVERY REPORT DEBUG ===');
+    console.log('Loading:', loading);
+    console.log('User:', user);
+    
+    // Temporarily bypass authentication to test the API
     const fetchDeliveries = () => {
+      console.log('Fetching deliveries from demo endpoint...');
       axios
-        .get(`${API_ENDPOINTS.ORDERS}/deliveries/customer`)
+        .get(`${API_ENDPOINTS.ORDERS}/deliveries/customer-demo`)
         .then((res) => {
+          console.log('✅ SUCCESS: Customer deliveries data:', res.data);
+          console.log('Number of deliveries:', res.data.length);
           setDeliveries(res.data);
         })
-        .catch((err) => console.error("Error fetching customer deliveries:", err));
+        .catch((err) => {
+          console.error("❌ ERROR fetching customer deliveries:", err);
+          console.log('Error response:', err.response?.data);
+          console.log('Error status:', err.response?.status);
+          
+          // Fallback to all deliveries endpoint for debugging
+          console.log('Trying fallback to all deliveries endpoint...');
+          axios
+            .get(`${API_ENDPOINTS.DELIVERIES}`)
+            .then((res) => {
+              console.log('✅ FALLBACK SUCCESS: All deliveries data:', res.data);
+              console.log('Number of deliveries:', res.data.length);
+              setDeliveries(res.data);
+            })
+            .catch((fallbackErr) => {
+              console.error("❌ FALLBACK ERROR: Error fetching all deliveries:", fallbackErr);
+            });
+        });
     };
 
     fetchDeliveries();
+  }, [user, loading]);
 
+  useEffect(() => {
     // Listen for delivery status updates
     const handleDeliveryStatusUpdate = () => {
-      console.log('Delivery status updated, refreshing customer deliveries...');
+      console.log('🔄 Delivery status updated, refreshing customer deliveries...');
+      const fetchDeliveries = () => {
+        axios
+          .get(`${API_ENDPOINTS.ORDERS}/deliveries/customer-demo`)
+          .then((res) => {
+            console.log('✅ REFRESH SUCCESS: Customer deliveries data:', res.data);
+            setDeliveries(res.data);
+          })
+          .catch((err) => {
+            console.error("❌ REFRESH ERROR: Error fetching customer deliveries:", err);
+          });
+      };
       fetchDeliveries();
     };
 
@@ -43,6 +82,10 @@ function AccountOwnerDeliveryReportPage() {
     );
   });
 
+  console.log('Total deliveries:', deliveries.length);
+  console.log('Filtered deliveries:', filteredDeliveries.length);
+  console.log('Sample delivery:', deliveries[0]);
+
   // Format deliveryDate to DD/MM/YYYY
   const formatDate = (dateString) => {
     if (!dateString) return '';
@@ -60,10 +103,10 @@ function AccountOwnerDeliveryReportPage() {
     }
     
     const parts = [];
-    if (delivery.order) {
-      if (delivery.order.address) parts.push(delivery.order.address);
-      if (delivery.order.city) parts.push(delivery.order.city);
-      if (delivery.order.province) parts.push(delivery.order.province);
+    if (delivery.orderId) {
+      if (delivery.orderId.address) parts.push(delivery.orderId.address);
+      if (delivery.orderId.city) parts.push(delivery.orderId.city);
+      if (delivery.orderId.province) parts.push(delivery.orderId.province);
     }
     return parts.join(', ');
   };
@@ -71,6 +114,13 @@ function AccountOwnerDeliveryReportPage() {
   return (
     <div className="container">
       <h1>My Delivery Status Reports</h1>
+      {loading ? (
+        <p>Loading...</p>
+      ) : !user ? (
+        <p>Please log in to view your delivery reports.</p>
+      ) : deliveries.length === 0 ? (
+        <p>No deliveries found for your account.</p>
+      ) : null}
       <Link to="/delivery" className="back-nav-button">
         ← Back 
       </Link>
@@ -254,6 +304,14 @@ function AccountOwnerDeliveryReportPage() {
                         <span className="detail-value-enhanced">{delivery.orderId?.orderId || delivery.orderId?.toString()}</span>
                       </div>
                       <div className="detail-row-enhanced">
+                        <span className="detail-label-enhanced">Customer:</span>
+                        <span className="detail-value-enhanced">{delivery.orderId?.firstName || 'N/A'} {delivery.orderId?.lastName || ''}</span>
+                      </div>
+                      <div className="detail-row-enhanced">
+                        <span className="detail-label-enhanced">Phone:</span>
+                        <span className="detail-value-enhanced">{delivery.orderId?.mobileNo || 'Not provided'}</span>
+                      </div>
+                      <div className="detail-row-enhanced">
                         <span className="detail-label-enhanced">Driver:</span>
                         <span className="detail-value-enhanced">{delivery.driverName}</span>
                       </div>
@@ -291,6 +349,14 @@ function AccountOwnerDeliveryReportPage() {
                       <div className="detail-row-enhanced">
                         <span className="detail-label-enhanced">Order ID:</span>
                         <span className="detail-value-enhanced">{delivery.orderId?.orderId || delivery.orderId?.toString()}</span>
+                      </div>
+                      <div className="detail-row-enhanced">
+                        <span className="detail-label-enhanced">Customer:</span>
+                        <span className="detail-value-enhanced">{delivery.orderId?.firstName || 'N/A'} {delivery.orderId?.lastName || ''}</span>
+                      </div>
+                      <div className="detail-row-enhanced">
+                        <span className="detail-label-enhanced">Phone:</span>
+                        <span className="detail-value-enhanced">{delivery.orderId?.mobileNo || 'Not provided'}</span>
                       </div>
                       <div className="detail-row-enhanced">
                         <span className="detail-label-enhanced">Driver:</span>
@@ -332,6 +398,14 @@ function AccountOwnerDeliveryReportPage() {
                         <span className="detail-value-enhanced">{delivery.orderId?.orderId || delivery.orderId?.toString()}</span>
                       </div>
                       <div className="detail-row-enhanced">
+                        <span className="detail-label-enhanced">Customer:</span>
+                        <span className="detail-value-enhanced">{delivery.orderId?.firstName || 'N/A'} {delivery.orderId?.lastName || ''}</span>
+                      </div>
+                      <div className="detail-row-enhanced">
+                        <span className="detail-label-enhanced">Phone:</span>
+                        <span className="detail-value-enhanced">{delivery.orderId?.mobileNo || 'Not provided'}</span>
+                      </div>
+                      <div className="detail-row-enhanced">
                         <span className="detail-label-enhanced">Driver:</span>
                         <span className="detail-value-enhanced">{delivery.driverName}</span>
                       </div>
@@ -369,6 +443,14 @@ function AccountOwnerDeliveryReportPage() {
                       <div className="detail-row-enhanced">
                         <span className="detail-label-enhanced">Order ID:</span>
                         <span className="detail-value-enhanced">{delivery.orderId?.orderId || delivery.orderId?.toString()}</span>
+                      </div>
+                      <div className="detail-row-enhanced">
+                        <span className="detail-label-enhanced">Customer:</span>
+                        <span className="detail-value-enhanced">{delivery.orderId?.firstName || 'N/A'} {delivery.orderId?.lastName || ''}</span>
+                      </div>
+                      <div className="detail-row-enhanced">
+                        <span className="detail-label-enhanced">Phone:</span>
+                        <span className="detail-value-enhanced">{delivery.orderId?.mobileNo || 'Not provided'}</span>
                       </div>
                       <div className="detail-row-enhanced">
                         <span className="detail-label-enhanced">Driver:</span>

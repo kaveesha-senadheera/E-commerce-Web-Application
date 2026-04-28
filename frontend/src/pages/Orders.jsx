@@ -13,6 +13,8 @@ function Orders() {
   const [successMessage, setSuccessMessage] = useState("");
   const [showAnimatedConfirm, setShowAnimatedConfirm] = useState(false);
   const [submittedOrder, setSubmittedOrder] = useState(null);
+  const [showPDFConfirmModal, setShowPDFConfirmModal] = useState(false);
+  const [showPDFModal, setShowPDFModal] = useState(false);
 
   useEffect(() => {
     // Fetch orders from the backend
@@ -60,6 +62,22 @@ function Orders() {
   const closeAnimatedConfirm = () => {
     setShowAnimatedConfirm(false);
     setSuccessMessage("");
+    setSubmittedOrder(null);
+  };
+
+  const handlePDFConfirm = () => {
+    setShowPDFConfirmModal(false);
+    setShowPDFModal(true);
+  };
+
+  const handlePDFCancel = () => {
+    setShowPDFConfirmModal(false);
+  };
+
+  const downloadOrderPDF = (order) => {
+    // PDF download logic would go here
+    console.log('Downloading PDF for order:', order);
+    setShowPDFModal(false);
     setSubmittedOrder(null);
   };
 

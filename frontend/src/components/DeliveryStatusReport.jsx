@@ -43,10 +43,10 @@ function DeliveryStatusReport({ deliveries }) {
     }
     
     const parts = [];
-    if (delivery.order) {
-      if (delivery.order.address) parts.push(delivery.order.address);
-      if (delivery.order.city) parts.push(delivery.order.city);
-      if (delivery.order.province) parts.push(delivery.order.province);
+    if (delivery.orderId) {
+      if (delivery.orderId.address) parts.push(delivery.orderId.address);
+      if (delivery.orderId.city) parts.push(delivery.orderId.city);
+      if (delivery.orderId.province) parts.push(delivery.orderId.province);
     }
     return parts.join(', ');
   };
@@ -245,6 +245,14 @@ function DeliveryStatusReport({ deliveries }) {
                       <span className="detail-value-enhanced">{delivery.orderId?.orderId || delivery.orderId?.toString()}</span>
                     </div>
                     <div className="detail-row-enhanced">
+                      <span className="detail-label-enhanced">Customer:</span>
+                      <span className="detail-value-enhanced">{delivery.orderId?.firstName || 'N/A'} {delivery.orderId?.lastName || ''}</span>
+                    </div>
+                    <div className="detail-row-enhanced">
+                      <span className="detail-label-enhanced">Phone:</span>
+                      <span className="detail-value-enhanced">{delivery.orderId?.mobileNo || 'Not provided'}</span>
+                    </div>
+                    <div className="detail-row-enhanced">
                       <span className="detail-label-enhanced">Driver:</span>
                       <span className="detail-value-enhanced">{delivery.driverName}</span>
                     </div>
@@ -282,6 +290,14 @@ function DeliveryStatusReport({ deliveries }) {
                     <div className="detail-row-enhanced">
                       <span className="detail-label-enhanced">Order ID:</span>
                       <span className="detail-value-enhanced">{delivery.orderId?.orderId || delivery.orderId?.toString()}</span>
+                    </div>
+                    <div className="detail-row-enhanced">
+                      <span className="detail-label-enhanced">Customer:</span>
+                      <span className="detail-value-enhanced">{delivery.orderId?.firstName || 'N/A'} {delivery.orderId?.lastName || ''}</span>
+                    </div>
+                    <div className="detail-row-enhanced">
+                      <span className="detail-label-enhanced">Phone:</span>
+                      <span className="detail-value-enhanced">{delivery.orderId?.mobileNo || 'Not provided'}</span>
                     </div>
                     <div className="detail-row-enhanced">
                       <span className="detail-label-enhanced">Driver:</span>
@@ -323,6 +339,14 @@ function DeliveryStatusReport({ deliveries }) {
                       <span className="detail-value-enhanced">{delivery.orderId?.orderId || delivery.orderId?.toString()}</span>
                     </div>
                     <div className="detail-row-enhanced">
+                      <span className="detail-label-enhanced">Customer:</span>
+                      <span className="detail-value-enhanced">{delivery.orderId?.firstName || 'N/A'} {delivery.orderId?.lastName || ''}</span>
+                    </div>
+                    <div className="detail-row-enhanced">
+                      <span className="detail-label-enhanced">Phone:</span>
+                      <span className="detail-value-enhanced">{delivery.orderId?.mobileNo || 'Not provided'}</span>
+                    </div>
+                    <div className="detail-row-enhanced">
                       <span className="detail-label-enhanced">Driver:</span>
                       <span className="detail-value-enhanced">{delivery.driverName}</span>
                     </div>
@@ -360,6 +384,14 @@ function DeliveryStatusReport({ deliveries }) {
                     <div className="detail-row-enhanced">
                       <span className="detail-label-enhanced">Order ID:</span>
                       <span className="detail-value-enhanced">{delivery.orderId?.orderId || delivery.orderId?.toString()}</span>
+                    </div>
+                    <div className="detail-row-enhanced">
+                      <span className="detail-label-enhanced">Customer:</span>
+                      <span className="detail-value-enhanced">{delivery.orderId?.firstName || 'N/A'} {delivery.orderId?.lastName || ''}</span>
+                    </div>
+                    <div className="detail-row-enhanced">
+                      <span className="detail-label-enhanced">Phone:</span>
+                      <span className="detail-value-enhanced">{delivery.orderId?.mobileNo || 'Not provided'}</span>
                     </div>
                     <div className="detail-row-enhanced">
                       <span className="detail-label-enhanced">Driver:</span>
