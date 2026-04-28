@@ -3,9 +3,11 @@ import { Link } from 'react-router-dom';
 import { jsPDF } from 'jspdf';
 import axios from 'axios';
 import { API_ENDPOINTS } from '../api/config';
+import { useAuth } from '../context/AuthContext';
 import './success-message.css';
 
 function DeliveryForm({ onUpdate, deliveries }) {
+  const { user } = useAuth();
   const [formData, setFormData] = useState({
     deliveryId: '',
     driverName: '',
@@ -196,6 +198,17 @@ function DeliveryForm({ onUpdate, deliveries }) {
   };
 
   const showSuccessMessage = (deliveryId, action) => {
+    // Use the form data that was just submitted for the success message
+    const submittedData = {
+      deliveryId: deliveryId,
+      driverName: formData.driverName,
+      destination: formData.destination,
+      deliveryDate: formData.deliveryDate,
+      status: formData.status,
+      phone: user?.phone || 'Not provided'
+    };
+    setCurrentDeliveryData(submittedData);
+    
     setFormData({ deliveryId: '', driverName: '', destination: '', deliveryDate: '', status: 'COMPLETED' });
     setShowError(false);
     setShowSuccess(true);
@@ -205,6 +218,7 @@ function DeliveryForm({ onUpdate, deliveries }) {
 
     setTimeout(() => {
       setShowSuccess(false);
+      setCurrentDeliveryData(null);
     }, 5000);
   };
 
@@ -294,7 +308,7 @@ function DeliveryForm({ onUpdate, deliveries }) {
               </div>
               <div className="detail-item-enhanced">
                 <span className="detail-label-enhanced">Phone:</span>
-                <span className="detail-value-enhanced">Not provided</span>
+                <span className="detail-value-enhanced">{currentDeliveryData.phone || 'Not provided'}</span>
               </div>
               <div className="detail-item-enhanced">
                 <span className="detail-label-enhanced">Payment:</span>
